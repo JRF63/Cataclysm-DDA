@@ -71,11 +71,13 @@ map_memory::coord_pair::coord_pair( const tripoint &p ) : loc( p.xy() )
 
 map_memory::map_memory()
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     clear_cache();
 }
 
-const memorized_terrain_tile &map_memory::get_tile( const tripoint &pos ) const
+const memorized_terrain_tile &map_memory::get_tile( const tripoint &pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     coord_pair p( pos );
     const mm_submap &sm = get_submap( p.sm );
     return sm.tile( p.loc );
@@ -84,6 +86,7 @@ const memorized_terrain_tile &map_memory::get_tile( const tripoint &pos ) const
 void map_memory::memorize_tile( const tripoint &pos, const std::string &ter,
                                 const int subtile, const int rotation )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     coord_pair p( pos );
     mm_submap &sm = get_submap( p.sm );
     if( !sm.is_valid() ) {
@@ -92,8 +95,9 @@ void map_memory::memorize_tile( const tripoint &pos, const std::string &ter,
     sm.set_tile( p.loc, memorized_terrain_tile{ ter, subtile, rotation } );
 }
 
-int map_memory::get_symbol( const tripoint &pos ) const
+int map_memory::get_symbol( const tripoint &pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     coord_pair p( pos );
     const mm_submap &sm = get_submap( p.sm );
     return sm.symbol( p.loc );
@@ -101,6 +105,7 @@ int map_memory::get_symbol( const tripoint &pos ) const
 
 void map_memory::memorize_symbol( const tripoint &pos, const int symbol )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     coord_pair p( pos );
     mm_submap &sm = get_submap( p.sm );
     if( !sm.is_valid() ) {
@@ -111,6 +116,7 @@ void map_memory::memorize_symbol( const tripoint &pos, const int symbol )
 
 void map_memory::clear_memorized_tile( const tripoint &pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     coord_pair p( pos );
     mm_submap &sm = get_submap( p.sm );
     if( !sm.is_valid() ) {
@@ -122,6 +128,7 @@ void map_memory::clear_memorized_tile( const tripoint &pos )
 
 bool map_memory::prepare_region( const tripoint &p1, const tripoint &p2 )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     cata_assert( p1.z == p2.z );
     cata_assert( p1.x <= p2.x && p1.y <= p2.y );
 
@@ -154,6 +161,7 @@ bool map_memory::prepare_region( const tripoint &p1, const tripoint &p2 )
 
 shared_ptr_fast<mm_submap> map_memory::fetch_submap( const tripoint &sm_pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
     shared_ptr_fast<mm_submap> sm = find_submap( sm_pos );
     if( sm ) {
         return sm;
@@ -167,6 +175,8 @@ shared_ptr_fast<mm_submap> map_memory::fetch_submap( const tripoint &sm_pos )
 
 shared_ptr_fast<mm_submap> map_memory::allocate_submap( const tripoint &sm_pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     // Since all save/load operations are done on regions of submaps,
     // we need to allocate the whole region at once.
     shared_ptr_fast<mm_submap> ret;
@@ -190,6 +200,8 @@ shared_ptr_fast<mm_submap> map_memory::allocate_submap( const tripoint &sm_pos )
 
 shared_ptr_fast<mm_submap> map_memory::find_submap( const tripoint &sm_pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     auto sm = submaps.find( sm_pos );
     if( sm == submaps.end() ) {
         return nullptr;
@@ -200,6 +212,8 @@ shared_ptr_fast<mm_submap> map_memory::find_submap( const tripoint &sm_pos )
 
 shared_ptr_fast<mm_submap> map_memory::load_submap( const tripoint &sm_pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     if( test_mode ) {
         return nullptr;
     }
@@ -250,8 +264,10 @@ shared_ptr_fast<mm_submap> map_memory::load_submap( const tripoint &sm_pos )
 static mm_submap null_mz_submap;
 static mm_submap invalid_mz_submap{ false };
 
-const mm_submap &map_memory::get_submap( const tripoint &sm_pos ) const
+mm_submap &map_memory::get_submap( const tripoint &sm_pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     if( cache_pos == tripoint_min ) {
         debugmsg( "Called map_memory with an " );
         return invalid_mz_submap;
@@ -264,21 +280,10 @@ const mm_submap &map_memory::get_submap( const tripoint &sm_pos ) const
     }
 }
 
-mm_submap &map_memory::get_submap( const tripoint &sm_pos )
-{
-    if( cache_pos == tripoint_min ) {
-        return invalid_mz_submap;
-    }
-    const point idx = ( sm_pos - cache_pos ).xy();
-    if( idx.x > 0 && idx.y > 0 && idx.x < cache_size.x && idx.y < cache_size.y ) {
-        return *cached[idx.y * cache_size.x + idx.x];
-    } else {
-        return null_mz_submap;
-    }
-}
-
 void map_memory::load( const tripoint &pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     const cata_path dirname = find_mm_dir();
 
     clear_cache();
@@ -312,6 +317,8 @@ void map_memory::load( const tripoint &pos )
 
 bool map_memory::save( const tripoint &pos )
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     tripoint sm_center = coord_pair( pos ).sm;
     const cata_path dirname = find_mm_dir();
     assure_dir_exist( dirname );
@@ -383,6 +390,8 @@ bool map_memory::save( const tripoint &pos )
 
 void map_memory::clear_cache()
 {
+    std::lock_guard<std::recursive_mutex> lock( m );
+
     cached.clear();
     cache_pos = tripoint_min;
     cache_size = point_zero;

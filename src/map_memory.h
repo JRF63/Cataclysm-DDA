@@ -160,7 +160,7 @@ class map_memory
          * Returns memorized tile.
          * @param pos tile position, in global ms coords.
          */
-        const memorized_terrain_tile &get_tile( const tripoint &pos ) const;
+        const memorized_terrain_tile &get_tile( const tripoint &pos );
 
         /**
          * Memorizes given symbol, overwriting old value.
@@ -172,7 +172,7 @@ class map_memory
          * Returns memorized symbol.
          * @param pos tile position, in global ms coords.
          */
-        int get_symbol( const tripoint &pos ) const;
+        int get_symbol( const tripoint &pos );
 
         /**
          * Clears memorized tile and symbol.
@@ -198,11 +198,16 @@ class map_memory
 
         /** Get submap from within the cache */
         //@{
-        const mm_submap &get_submap( const tripoint &sm_pos ) const;
         mm_submap &get_submap( const tripoint &sm_pos );
         //@}
 
         void clear_cache();
+
+        /**
+         * This class is gonna be used by cata_tiles in a multithreaded way. We're just going to
+         * lock this mutex inside each method.
+         */
+        std::recursive_mutex m;
 };
 
 #endif // CATA_SRC_MAP_MEMORY_H

@@ -26,7 +26,7 @@ static std::array<int, max_triggers> triggers_state = {0, 0};
 static std::array<int, max_sticks> sticks_state = {0, 0};
 
 static int triggers_threshold = 16000;
-static int sticks_threshold = 16000;
+static int sticks_threshold = 12000;
 static int error_margin = 2000;
 
 static std::array<std::array<int, 16>, max_sticks> sticks_map = {};
@@ -48,8 +48,8 @@ static constexpr int triggers_task_index = max_buttons + max_sticks;
 static std::array<task_t, max_tasks> all_tasks;
 
 static int repeat_delay = 400;
-static int repeat_interval = 200;
-static int diagonal_detect_delay = 250;
+static int repeat_interval = 75;
+static int diagonal_detect_delay = 300;
 
 // SDL related stuff
 static SDL_TimerID timer_id;

@@ -12,6 +12,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <new>
 #include <set>
 #include <tuple>
@@ -353,11 +354,13 @@ class map
         void invalidate_map_cache( int zlev );
 
         bool check_seen_cache( const tripoint &p ) const {
+            std::lock_guard<decltype( map_mutex )> lock( map_mutex );
             std::bitset<MAPSIZE_X *MAPSIZE_Y> &memory_seen_cache =
                 get_cache( p.z ).map_memory_seen_cache;
             return !memory_seen_cache[ p.x + p.y * MAPSIZE_Y ];
         }
         bool check_and_set_seen_cache( const tripoint &p ) const {
+            std::lock_guard<decltype( map_mutex )> lock( map_mutex );
             std::bitset<MAPSIZE_X *MAPSIZE_Y> &memory_seen_cache =
                 get_cache( p.z ).map_memory_seen_cache;
             if( !memory_seen_cache[ p.x + p.y * MAPSIZE_Y ] ) {
@@ -1631,6 +1634,8 @@ class map
 
         // Support (of weight, structures etc.)
     private:
+        mutable std::recursive_mutex map_mutex;
+
         // Tiles whose ability to support things was removed in the last turn
         std::set<tripoint> support_cache_dirty;
         // Checks if the tile is supported and adds it to support_cache_dirty if it isn't

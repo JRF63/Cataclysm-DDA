@@ -134,10 +134,8 @@ def assetsDirWindows = 'src/main/assetsWinHost'
 
 task unzipDeps(type: Copy) {
     println("Using dependencies file: $deps")
-    def zipFile = new File("$deps")
-    def outputDir = new File('.')
-    from zipTree(zipFile)
-    into outputDir
+    from zipTree("$deps")
+    into "$projectDir/jni"
 }
 
 task makeLocalization(type: Exec) {
@@ -293,38 +291,40 @@ android {
     }
 
     signingConfigs {
-        if (keystoreProperties.getProperty('storeFile') != null) {
-            if (file(keystoreProperties.getProperty('storeFile')).exists()) {
-                release {
-                    storeFile file(keystoreProperties.getProperty("storeFile"))
-                    storePassword keystoreProperties.getProperty("storePassword")
-                    keyAlias keystoreProperties.getProperty("keyAlias")
-                    keyPassword keystoreProperties.getProperty("keyPassword")
-                }
-            } else {
-                throw new GradleException("Keystore file " + keystoreProperties.getProperty("storeFile") + " was not found.\n")
-            }
-        }
-        if (keystoreProperties.getProperty('debug_storeFile') != null) {
-            if (file(keystoreProperties.getProperty('debug_storeFile')).exists()) {
-                debug {
-                    storeFile file(keystoreProperties.getProperty("debug_storeFile"))
-                    storePassword keystoreProperties.getProperty("debug_storePassword")
-                    keyAlias keystoreProperties.getProperty("debug_keyAlias")
-                    keyPassword keystoreProperties.getProperty("debug_keyPassword")
-                }
-            } else {
-                throw new GradleException("Keystore file " + keystoreProperties.getProperty("debug_storeFile") + " was not found.\n")
-            }
-        }
+        debug {}
+        // if (keystoreProperties.getProperty('storeFile') != null) {
+        //     if (file(keystoreProperties.getProperty('storeFile')).exists()) {
+        //         release {
+        //             storeFile file(keystoreProperties.getProperty("storeFile"))
+        //             storePassword keystoreProperties.getProperty("storePassword")
+        //             keyAlias keystoreProperties.getProperty("keyAlias")
+        //             keyPassword keystoreProperties.getProperty("keyPassword")
+        //         }
+        //     } else {
+        //         throw new GradleException("Keystore file " + keystoreProperties.getProperty("storeFile") + " was not found.\n")
+        //     }
+        // }
+        // if (keystoreProperties.getProperty('debug_storeFile') != null) {
+        //     if (file(keystoreProperties.getProperty('debug_storeFile')).exists()) {
+        //         debug {
+        //             storeFile file(keystoreProperties.getProperty("debug_storeFile"))
+        //             storePassword keystoreProperties.getProperty("debug_storePassword")
+        //             keyAlias keystoreProperties.getProperty("debug_keyAlias")
+        //             keyPassword keystoreProperties.getProperty("debug_keyPassword")
+        //         }
+        //     } else {
+        //         throw new GradleException("Keystore file " + keystoreProperties.getProperty("debug_storeFile") + " was not found.\n")
+        //     }
+        // }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (signingConfigs.hasProperty("release")) {
-                signingConfig signingConfigs.release
-            }
+            // if (signingConfigs.hasProperty("release")) {
+            //     signingConfig signingConfigs.release
+            // }
+            signingConfig signingConfigs.debug
             externalNativeBuild {
                 ndkBuild {
                     cFlags "-DNDEBUG", "-DRELEASE", "-Os", "-g"
@@ -338,9 +338,10 @@ android {
         debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (signingConfigs.hasProperty("debug")) {
-                signingConfig signingConfigs.debug
-            }
+            // if (signingConfigs.hasProperty("debug")) {
+            //     signingConfig signingConfigs.debug
+            // }
+            signingConfig signingConfigs.debug
             externalNativeBuild {
                 ndkBuild {
                     cFlags "-g"
@@ -366,6 +367,16 @@ android {
         abortOnError false
     }
 
+    // sourceSets {
+    //     main {
+    //         assets {
+    //             srcDirs = ['$projectDir/../..']
+    //             exclude { fileTreeElement ->
+    //                 ['data', 'gfx', 'lang/mo'].contains(fileTreeElement.path)
+    //             }
+    //         }
+    //     }
+    // }
     if (OperatingSystem.current() == OperatingSystem.WINDOWS) {
         sourceSets.main.assets.srcDirs = ['src/main/assetsWinHost']
     }

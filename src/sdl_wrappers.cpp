@@ -2,9 +2,12 @@
 
 #include "sdl_wrappers.h"
 
+#include <mutex>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <vector>
 
 #include "cata_assert.h"
 #include "debug.h"
@@ -190,6 +193,55 @@ SDL_Surface_Ptr CreateRGBSurface( const Uint32 flags, const int width, const int
                              Amask ) );
     throwErrorIf( !surface, "Failed to create surface" );
     return surface;
+}
+
+struct render_copy_ex_command {
+    std::shared_ptr<SDL_Texture> sdl_texture_ptr;
+    SDL_Rect srcrect;
+    SDL_Rect dstrect;
+    double angle;
+    SDL_RendererFlip flip;
+};
+
+static std::vector<render_copy_ex_command> command_buffer;
+static std::mutex command_buffer_mutex;
+
+int RenderCopyEx( const SDL_Renderer_Ptr &renderer, std::shared_ptr<SDL_Texture> sdl_texture_ptr,
+                  const SDL_Rect *srcrect, const SDL_Rect *dstrect, const double angle,
+                  const SDL_Point *center, const SDL_RendererFlip flip )
+{
+    //dbg(D_INFO) << "-- RenderCopyEx Log Start ---";
+    //dbg(D_INFO) << "Pointer address: " << sdl_texture_ptr.get();
+    //dbg(D_INFO) << "Source rect: {" << srcrect->x << ", " << srcrect->y << ", " << srcrect->w << ", " << srcrect->h << "}";
+    //dbg(D_INFO) << "Dest rect: {" << dstrect->x << ", " << dstrect->y << ", " << dstrect->w << ", " << dstrect->h << "}";
+    //dbg(D_INFO) << "Angle: " << angle;
+    //dbg(D_INFO) << "Center: {" << center->x << ", " << center->y << "}";
+    //dbg(D_INFO) << "Flip: {" << flip;
+    const std::lock_guard<std::mutex> lock( command_buffer_mutex );
+    command_buffer.push_back( render_copy_ex_command{ sdl_texture_ptr, *srcrect, *dstrect, angle, flip } );
+    return 0;
+}
+
+void RenderCopyExSubmit( const SDL_Renderer_Ptr &renderer )
+{
+    const std::lock_guard<std::mutex> lock( command_buffer_mutex );
+    for( auto c : command_buffer ) {
+        //dbg(D_INFO) << "-- RenderCopyEx Cont. ---";
+        //dbg(D_INFO) << "Pointer address: " << c.sdl_texture_ptr.get();
+        //dbg(D_INFO) << "Source rect: {" << c.srcrect.x << ", " << c.srcrect.y << ", " << c.srcrect.w << ", " << c.srcrect.h << "}";
+        //dbg(D_INFO) << "Dest rect: {" << c.dstrect.x << ", " << c.dstrect.y << ", " << c.dstrect.w << ", " << c.dstrect.h << "}";
+        //dbg(D_INFO) << "Angle: " << c.angle;
+        //dbg(D_INFO) << "Center: {" << c.center.x << ", " << c.center.y << "}";
+        //dbg(D_INFO) << "Flip: {" << c.flip;
+
+        int ret = SDL_RenderCopyEx( renderer.get(), c.sdl_texture_ptr.get(), &c.srcrect,
+                                    &c.dstrect, c.angle, nullptr, c.flip );
+        if( ret != 0 ) {
+            dbg( D_ERROR ) << "Error copying texture";
+            break;
+        }
+    }
+    command_buffer.clear();
 }
 
 #endif

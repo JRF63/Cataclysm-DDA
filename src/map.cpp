@@ -266,6 +266,7 @@ void map::set_floor_cache_dirty( const int zlev )
 
 void map::set_memory_seen_cache_dirty( const tripoint &p )
 {
+    std::lock_guard<decltype( map_mutex )> lock( map_mutex );
     const int offset = p.x + p.y * MAPSIZE_Y;
     if( offset >= 0 && offset < MAPSIZE_X * MAPSIZE_Y ) {
         get_cache( p.z ).map_memory_seen_cache.reset( offset );

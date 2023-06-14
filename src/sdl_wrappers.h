@@ -102,6 +102,10 @@ void SetRenderTarget( const SDL_Renderer_Ptr &renderer, const SDL_Texture_Ptr &t
 void RenderClear( const SDL_Renderer_Ptr &renderer );
 SDL_Surface_Ptr CreateRGBSurface( Uint32 flags, int width, int height, int depth, Uint32 Rmask,
                                   Uint32 Gmask, Uint32 Bmask, Uint32 Amask );
+int RenderCopyEx( const SDL_Renderer_Ptr &renderer, std::shared_ptr<SDL_Texture> sdl_texture_ptr,
+                  const SDL_Rect *srcrect, const SDL_Rect *dstrect, const double angle,
+                  const SDL_Point *center, const SDL_RendererFlip flip );
+void RenderCopyExSubmit( const SDL_Renderer_Ptr &renderer );
 /**@}*/
 
 void StartTextInput();
