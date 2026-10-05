@@ -7451,21 +7451,32 @@ npc::need_result npc::execute_go_to_sleep()
     const tripoint_bub_ms target_bub = here.get_bub( plan.target );
     const Character &player_character = get_player_character();
 
-    // At target: perform the sleep action.
-    if( pos_bub() == target_bub ) {
+    // This bool is used as sentinel to check if the target was reached in a previous attempt.
+    bool trying_to_sleep = plan.goal == "go_to_sleep" &&
+                           ( plan.last_result == need_result::satisfied || plan.last_result == need_result::holding );
+
+    // At target or previously tried to sleep at target: perform the sleep action.
+    //
+    // Sleeping in moving vehicles causes the first condition to be false. If sleeping is
+    // interrupted by noise, the NPC would reuse the plan with the target being outside the vehicle.
+    if( pos_bub() == target_bub || trying_to_sleep ) {
         move_pause();
         if( is_walking_with() ) {
             complain_about( "napping", 30_minutes,
                             chat_snippets().snip_warn_sleep.translated() );
         }
         activate_bionic_by_id( bio_soporific );
+
+        // In the whole function, only this if-else sets plan.last_result to satisfied/holding. If
+        // plan.last_result was set to either, then we know pos_bub() == target_bub in a previous
+        // call.
         if( !is_avatar() && can_sleep() ) {
             if( !player_character.in_sleep_state() ) {
                 add_msg_if_player_sees( *this, _( "%s lies down to sleep." ),
                                         get_name() );
             }
             fall_asleep();
-            plan.last_result = need_result::progressed;
+            plan.last_result = need_result::satisfied;
             plan.no_progress_turns = 0;
             return need_result::progressed;
         } else {
